@@ -21,7 +21,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 //
-#![feature(asm_const, maybe_uninit_uninit_array, maybe_uninit_array_assume_init)]
+#![feature(maybe_uninit_array_assume_init)]
 use std::collections::HashMap;
 
 use const_fnv1a_hash::fnv1a_hash_str_64;
@@ -83,7 +83,7 @@ macro_rules! syscall {
    (@count_tts         $($a:tt $even:tt)*) => { syscall!(@count_tts $($a)*) << 1 };
 
    ($fun:ident($($args:expr$(,)?)*)) => {{
-      #[allow(unreachable_code, unused_unsafe, unused_mut, unused_assignments, unused_variables)]
+      #[allow(unreachable_code, unused_unsafe, unused_mut, unused_assignments, unused_variables, static_mut_refs)]
       unsafe {
          if cfg!(feature="windows-syscall-use-linked") {
             $fun($($args,)*) as NTSTATUS
@@ -134,7 +134,7 @@ macro_rules! syscall {
    // Emits the actual syscall instruction
    (@emit [$($register:expr)*] $($stack:expr)*) => {{
       let [arg1, arg2, arg3, arg4, mut status] = {
-         let mut data = MaybeUninit::<usize>::uninit_array::<5>();
+         let mut data = [const { MaybeUninit::<usize>::uninit() }; 5];
          let mut data_len: usize = 0;
          // Initialize stack args if and only if they were used, thus
          // avoiding unnecessary register allocations
